@@ -55,14 +55,37 @@ python generate_static_page.py   # renders docs/index.html for ALL regions
 `verify.py` marks anything it can't confidently resolve as `confidence:
 "none"` and lists it under "needs manual review" on the generated page,
 instead of silently dropping it or guessing — the same honesty the old
-hand-built feed used for gap notes. That's a short, bounded list per run, and
-it's the *only* point where a live Claude session with the `tinyfish` /
-`searxng` MCP tools is worth spending on: deep-diving the handful of
-ambiguous names (disambiguating a common name, chasing a bio link a plain
-search snippet didn't surface, etc.) rather than re-researching every
-creator from scratch. Feed confirmed results from that manual pass back into
-`data/verified_<region>.json` by hand (or a small patch script) before
-re-running `generate_static_page.py`.
+hand-built feed used for gap notes.
+
+tinyfish has no standalone API outside a Claude session's MCP tools, so it's
+never called automatically. There are two ways to bring it in, both opt-in:
+
+1. **Ad hoc, on the "needs manual review" list** — hand a Claude session the
+   handful of unresolved names from the generated page and ask it to
+   deep-dive just those with `tinyfish`/`searxng`.
+2. **A broader on-demand ask**, for when SearXNG/normal search just isn't
+   covering a platform or region well enough (not only the leftovers):
+
+   ```
+   python request_tinyfish.py <region>              # thin platforms + unresolved names
+   python request_tinyfish.py <region> --min-per-platform 8   # raise the "thin" bar
+   ```
+
+   This writes `data/tinyfish_requests_<region>.json` — a bounded manifest
+   (which platforms came back thin, which names are unresolved, and
+   suggested asks for each). Hand that file to a Claude session with
+   tinyfish/searxng-MCP access; it writes findings to
+   `data/tinyfish_results_<region>.json` in the format the manifest
+   specifies. Then:
+
+   ```
+   python ingest_tinyfish.py <region>
+   python generate_static_page.py
+   ```
+
+   `ingest_tinyfish.py` merges the tinyfish-sourced entries into
+   `candidates_<region>.json`/`verified_<region>.json` (deduped by
+   platform+handle), so they show up in future runs like any other entry.
 
 ## Adding a new region
 
