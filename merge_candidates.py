@@ -25,13 +25,13 @@ def merge(region_slug: str, new_candidates_path: str) -> int:
     with open(new_candidates_path, encoding="utf-8") as f:
         incoming = json.load(f)
 
-    seen = {(c["platform"], c.get("handle") or c["source_url"]) for c in existing}
+    seen_names = {c["name"].strip().lower() for c in existing}
     added = 0
     for c in incoming:
-        key = (c["platform"], c.get("handle") or c["source_url"])
-        if key not in seen:
+        key = c["name"].strip().lower()
+        if key not in seen_names:
             existing.append(c)
-            seen.add(key)
+            seen_names.add(key)
             added += 1
 
     with open(existing_path, "w", encoding="utf-8") as f:
