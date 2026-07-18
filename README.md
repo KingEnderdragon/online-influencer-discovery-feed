@@ -50,20 +50,29 @@ python verify.py ohio
 python generate_static_page.py   # renders docs/index.html for ALL regions
 ```
 
-## Where tinyfish still fits in
+## Where WebSearch and tinyfish still fit in
 
 `verify.py` marks anything it can't confidently resolve as `confidence:
 "none"` and lists it under "needs manual review" on the generated page,
 instead of silently dropping it or guessing — the same honesty the old
 hand-built feed used for gap notes.
 
-tinyfish has no standalone API outside a Claude session's MCP tools, so it's
-never called automatically. There are two ways to bring it in, both opt-in:
+Neither WebSearch nor tinyfish has a standalone API outside a Claude
+session's MCP/built-in tools, so they're never called automatically by the
+scripts. In a Claude session, though, WebSearch should run **alongside**
+SearXNG on every discovery pass, not just as a rate-limit fallback — pair
+the two, merge results, don't substitute one for the other. `discover.py`
+signals when SearXNG itself is throttled (`SEARXNG_RATE_LIMITED`, see
+`data/stalled_queries_<region>.json`); `merge_candidates.py` /
+`ingest_websearch.py` take WebSearch-sourced results in the same schema and
+merge them in, deduped by name. tinyfish is the deeper-dive option on top of
+that, for when both SearXNG and WebSearch still aren't covering a
+platform/region well enough:
 
 1. **Ad hoc, on the "needs manual review" list** — hand a Claude session the
    handful of unresolved names from the generated page and ask it to
    deep-dive just those with `tinyfish`/`searxng`.
-2. **A broader on-demand ask**, for when SearXNG/normal search just isn't
+2. **A broader on-demand ask**, for when SearXNG/WebSearch just aren't
    covering a platform or region well enough (not only the leftovers):
 
    ```
