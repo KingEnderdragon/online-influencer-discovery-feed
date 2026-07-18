@@ -41,16 +41,23 @@ padding:.65rem .8rem;border-bottom:1px solid var(--line)}
 tbody td{padding:.55rem .8rem;border-bottom:1px solid var(--line);font-size:.87rem;vertical-align:top}
 .handle{font-family:ui-monospace,Consolas,monospace;color:var(--muted);font-size:.82rem}
 .gap-note{font-size:.78rem;color:var(--muted);margin:0 0 2rem}
+.spotlight{border:1px solid var(--accent);border-radius:10px;background:var(--accent-soft);
+padding:1.1rem 1.2rem 1.3rem;margin-bottom:2.5rem}
+.spotlight h3{margin-top:0}
+.spotlight .table-scroll{background:var(--paper);margin-bottom:0}
+.category-tag{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
 """
 
 
-def render_table(entries: list[dict]) -> str:
+def render_table(entries: list[dict], show_category: bool = False) -> str:
     rows = []
     for e in entries:
+        cat_cell = f"<td class='category-tag'>{html.escape(e.get('category') or '')}</td>" if show_category else ""
         rows.append(
             f"<tr><td>{html.escape(e['name'])}</td>"
             f"<td class='handle'>{html.escape(e.get('handle') or '')}</td>"
             f"<td><span class='status-badge {e['confidence']}'>{e['confidence']}</span></td>"
+            f"{cat_cell}"
             f"<td>{html.escape(e.get('quote') or '')}</td>"
             f"<td><a href='{html.escape(e['source_url'])}' target='_blank' rel='noopener'>source</a></td></tr>"
         )
@@ -64,18 +71,37 @@ def render_region(slug: str, region: dict) -> str:
         return ""
     with open(path, encoding="utf-8") as f:
         entries = json.load(f)
-
-    # Per user request: only keep people who blog about a specific job/profession —
-    # exclude food, lifestyle/vlog, and uncategorized creators.
-    if path == categorized_path:
-        entries = [e for e in entries if e.get("category") == "occupational"]
+    has_categories = path == categorized_path
 
     confirmed = [e for e in entries if e["confidence"] in ("high", "low")]
     needs_review = [e for e in entries if e["confidence"] == "none"]
 
+    # Spotlight: people who blog about a specific job/profession, called out on
+    # top of (not instead of) the full listing below.
+    spotlight = ""
+    if has_categories:
+        occupational = [e for e in confirmed if e.get("category") == "occupational"]
+        if occupational:
+            spotlight = f"""
+            <div class="spotlight">
+              <h3>Job &amp; Career Creators</h3>
+              <div class="table-scroll">
+                <table>
+                  <thead><tr><th>Name</th><th>Handle</th><th>Confidence</th><th>Residency evidence</th><th>Source</th></tr></thead>
+                  <tbody>{render_table(occupational)}</tbody>
+                </table>
+              </div>
+            </div>
+            """
+
     by_platform: dict[str, list] = {}
     for e in confirmed:
         by_platform.setdefault(e["platform"], []).append(e)
+
+    header_cols = "<th>Name</th><th>Handle</th><th>Confidence</th>"
+    if has_categories:
+        header_cols += "<th>Category</th>"
+    header_cols += "<th>Residency evidence</th><th>Source</th>"
 
     sections = []
     for platform, plat_entries in by_platform.items():
@@ -83,8 +109,8 @@ def render_region(slug: str, region: dict) -> str:
         <h3>{platform.title()}</h3>
         <div class="table-scroll">
           <table>
-            <thead><tr><th>Name</th><th>Handle</th><th>Confidence</th><th>Residency evidence</th><th>Source</th></tr></thead>
-            <tbody>{render_table(plat_entries)}</tbody>
+            <thead><tr>{header_cols}</tr></thead>
+            <tbody>{render_table(plat_entries, show_category=has_categories)}</tbody>
           </table>
         </div>
         """)
@@ -96,6 +122,7 @@ def render_region(slug: str, region: dict) -> str:
 
     return f"""
     <h2 class="region-title" id="region-{slug}">{region['name']}</h2>
+    {spotlight}
     {''.join(sections)}
     {gap_note}
     """
