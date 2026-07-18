@@ -58,11 +58,17 @@ def render_table(entries: list[dict]) -> str:
 
 
 def render_region(slug: str, region: dict) -> str:
-    path = f"data/verified_{slug}.json"
+    categorized_path = f"data/categorized_{slug}.json"
+    path = categorized_path if os.path.exists(categorized_path) else f"data/verified_{slug}.json"
     if not os.path.exists(path):
         return ""
     with open(path, encoding="utf-8") as f:
         entries = json.load(f)
+
+    # Per user request: only keep people who blog about a specific job/profession —
+    # exclude food, lifestyle/vlog, and uncategorized creators.
+    if path == categorized_path:
+        entries = [e for e in entries if e.get("category") == "occupational"]
 
     confirmed = [e for e in entries if e["confidence"] in ("high", "low")]
     needs_review = [e for e in entries if e["confidence"] == "none"]
