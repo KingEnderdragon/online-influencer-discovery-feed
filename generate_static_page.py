@@ -49,13 +49,22 @@ padding:1.1rem 1.2rem 1.3rem;margin-bottom:2.5rem}
 """
 
 
+def display_name(e: dict) -> str:
+    """Prefer the actual handle/username over the raw search-result title,
+    since titles are often a video caption or article headline, not the
+    creator's name (e.g. "RANTS FROM THE SHOWER" instead of @nickfromohio)."""
+    if e.get("handle"):
+        return f"@{e['handle']}"
+    return e["name"]
+
+
 def render_table(entries: list[dict], show_category: bool = False) -> str:
     rows = []
     for e in entries:
         cat_cell = f"<td class='category-tag'>{html.escape(e.get('category') or '')}</td>" if show_category else ""
         rows.append(
-            f"<tr><td>{html.escape(e['name'])}</td>"
-            f"<td class='handle'>{html.escape(e.get('handle') or '')}</td>"
+            f"<tr><td>{html.escape(display_name(e))}</td>"
+            f"<td class='handle'>{html.escape(e['name']) if e.get('handle') else ''}</td>"
             f"<td><span class='status-badge {e['confidence']}'>{e['confidence']}</span></td>"
             f"{cat_cell}"
             f"<td>{html.escape(e.get('quote') or '')}</td>"
@@ -87,7 +96,7 @@ def render_region(slug: str, region: dict) -> str:
               <h3>Job &amp; Career Creators</h3>
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th>Name</th><th>Handle</th><th>Confidence</th><th>Residency evidence</th><th>Source</th></tr></thead>
+                  <thead><tr><th>Name</th><th>Source title</th><th>Confidence</th><th>Residency evidence</th><th>Source</th></tr></thead>
                   <tbody>{render_table(occupational)}</tbody>
                 </table>
               </div>
@@ -98,7 +107,7 @@ def render_region(slug: str, region: dict) -> str:
     for e in confirmed:
         by_platform.setdefault(e["platform"], []).append(e)
 
-    header_cols = "<th>Name</th><th>Handle</th><th>Confidence</th>"
+    header_cols = "<th>Name</th><th>Source title</th><th>Confidence</th>"
     if has_categories:
         header_cols += "<th>Category</th>"
     header_cols += "<th>Residency evidence</th><th>Source</th>"
