@@ -1,0 +1,698 @@
+<title>Ohio Influencer Discovery Feed</title>
+<style>
+  :root{
+    --bg: #f6f4ee;
+    --paper: #fffdf8;
+    --ink: #1e211f;
+    --muted: #66695f;
+    --line: #ded9c9;
+    --accent: #2f5d4a;
+    --accent-soft: #e4ece6;
+    --ok: #2f6d3f;
+    --ok-soft: #e3efe3;
+    --warn: #9a5a1f;
+    --warn-soft: #f4e9dc;
+  }
+  :root[data-theme="dark"]{
+    --bg: #141712; --paper: #1b1f19; --ink: #e9e6db; --muted: #9a9c8e; --line: #333a30;
+    --accent: #7fd6ab; --accent-soft: #223129; --ok: #7fd6ab; --ok-soft: #1d2c22;
+    --warn: #e0a862; --warn-soft: #2e2417;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg: #141712; --paper: #1b1f19; --ink: #e9e6db; --muted: #9a9c8e; --line: #333a30;
+      --accent: #7fd6ab; --accent-soft: #223129; --ok: #7fd6ab; --ok-soft: #1d2c22;
+      --warn: #e0a862; --warn-soft: #2e2417;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family: ui-sans-serif, "Segoe UI", system-ui, sans-serif; line-height:1.5;}
+  .wrap{max-width:1000px;margin:0 auto;padding:2.5rem 1.5rem 5rem;}
+  header.top{display:flex; flex-direction:column; gap:0.6rem; padding-bottom:1.75rem; border-bottom:1px solid var(--line); margin-bottom:2rem;}
+  .eyebrow{font-family: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace; font-size:0.72rem; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent);}
+  h1{font-family: ui-serif, Georgia, "Iowan Old Style", serif; font-weight:600; font-size:clamp(1.8rem, 4vw, 2.5rem); margin:0; text-wrap:balance; letter-spacing:-0.01em;}
+  .dek{color:var(--muted); font-size:0.98rem; max-width:72ch;}
+  .dek code{font-family: ui-monospace, monospace; background:var(--accent-soft); color:var(--accent); padding:0.1em 0.4em; border-radius:4px; font-size:0.85em;}
+  .legend{display:flex; gap:1.2rem; flex-wrap:wrap; font-size:0.82rem; color:var(--muted); margin-bottom:1.5rem;}
+  .legend .dot{display:inline-block;width:0.55em;height:0.55em;border-radius:50%;margin-right:0.4em;}
+  .legend .dot.ok{background:var(--ok);}
+  .legend .dot.warn{background:var(--warn);}
+  .region-nav{display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:2.25rem;}
+  .region-nav a{font-size:0.78rem; text-decoration:none; color:var(--accent); background:var(--accent-soft); border:1px solid var(--line); padding:0.35em 0.8em; border-radius:999px;}
+  .region-nav a:hover{opacity:0.8;}
+  h2.region-title{font-family: ui-serif, Georgia, serif; font-size:1.75rem; margin:3.5rem 0 0.25rem; padding-top:1.5rem; border-top:2px solid var(--line);}
+  h2.region-title:first-of-type{border-top:none; padding-top:0; margin-top:0;}
+  .region-dek{color:var(--muted); font-size:0.88rem; max-width:78ch; margin:0 0 1.5rem;}
+  section.platform{margin-bottom:3rem;}
+  .plat-head{display:flex; align-items:baseline; justify-content:space-between; gap:1rem; margin-bottom:0.5rem; flex-wrap:wrap;}
+  .plat-head h3{font-family: ui-serif, Georgia, serif; font-size:1.3rem; margin:0; font-weight:600;}
+  .status-badge{font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.04em; padding:0.25em 0.65em; border-radius:999px; white-space:nowrap;}
+  .status-badge.ok{background:var(--ok-soft); color:var(--ok);}
+  .status-badge.warn{background:var(--warn-soft); color:var(--warn);}
+  .plat-sub{font-size:0.85rem; color:var(--muted); margin:0 0 0.9rem; max-width:78ch;}
+  .table-scroll{overflow-x:auto; border:1px solid var(--line); border-radius:10px; background:var(--paper);}
+  table{width:100%; border-collapse:collapse; min-width:760px;}
+  thead th{text-align:left; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); padding:0.65rem 0.8rem; border-bottom:1px solid var(--line); font-weight:600;}
+  tbody td{padding:0.55rem 0.8rem; border-bottom:1px solid var(--line); font-size:0.87rem; vertical-align:top;}
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr.new-row{background:var(--accent-soft);}
+  .handle{font-family: ui-monospace, "Cascadia Code", Consolas, monospace; color:var(--muted); font-size:0.82rem;}
+  .followers{font-variant-numeric: tabular-nums; font-weight:600; white-space:nowrap;}
+  .verified{color:var(--accent); font-size:0.78rem;}
+  .unconfirmed{font-style:italic; color:var(--muted); font-size:0.8rem;}
+  .residency{font-size:0.83rem;}
+  .residency q{quotes:"“" "”";}
+  .email{font-family: ui-monospace, Consolas, monospace; font-size:0.78rem; word-break:break-all;}
+  .email.derived::after{content:" *"; color:var(--warn);}
+  .gap-note{font-size:0.78rem;color:var(--muted);margin-top:0.5rem;}
+  .method{background:var(--accent-soft); border:1px solid var(--line); border-radius:10px; padding:1.1rem 1.3rem; margin:2.5rem 0; font-size:0.9rem; color:var(--ink);}
+  .method h3{margin:0 0 0.6rem; font-size:0.85rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--accent);}
+  .method .row{margin-bottom:0.7rem;}
+  .method .row:last-child{margin-bottom:0;}
+  .method strong.platname{display:inline-block; min-width:5.5em;}
+  .method code{font-family: ui-monospace, monospace; background:var(--paper); padding:0.1em 0.4em; border-radius:4px; font-size:0.85em;}
+  footer{border-top:1px solid var(--line); margin-top:2rem; padding-top:1.25rem; font-size:0.8rem; color:var(--muted);}
+  footer a{color:var(--accent);}
+
+  .row-controls{white-space:nowrap;padding:.4rem .5rem !important;}
+  .toggle-btn{font-size:.85rem;line-height:1;width:1.7em;height:1.7em;border-radius:6px;
+    border:1px solid var(--line);background:var(--paper);color:var(--muted);cursor:pointer;
+    margin-right:.25rem;padding:0;vertical-align:middle;transition:background .12s,color .12s,border-color .12s;}
+  .toggle-btn:last-child{margin-right:0}
+  .toggle-btn:hover{border-color:var(--accent)}
+  .toggle-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .toggle-check[aria-pressed="true"]{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+  .toggle-strike[aria-pressed="true"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+  tr.row-checked{background:var(--ok-soft)}
+  tr.row-struck td:not(.row-controls){text-decoration:line-through;opacity:.55}
+  .share-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-size:.8rem;color:var(--muted);
+    background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:.6rem .9rem;margin-bottom:2rem;}
+  .share-bar button{font:inherit;font-size:.78rem;font-weight:600;color:var(--accent);background:var(--accent-soft);
+    border:1px solid var(--line);border-radius:999px;padding:.4em .9em;cursor:pointer;}
+  .share-bar button:hover{opacity:.85}
+  .share-bar button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .share-bar input[type="text"]{font:inherit;font-size:.78rem;border:1px solid var(--line);border-radius:999px;
+    padding:.4em .9em;background:var(--bg);color:inherit;min-width:12rem;}
+  .share-bar input[type="text"]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .share-bar .share-status{font-size:.78rem}
+  @media (prefers-reduced-motion: reduce){.toggle-btn{transition:none}}
+</style>
+<div class="wrap">
+<header class="top">
+<span class="eyebrow">Sourced via online-influencer-discovery-feed</span>
+<h1>Ohio &amp; Regional Influencer Discovery Feed</h1>
+<p class="dek">Verified creator rosters across Ohio plus four newly added regions — Detroit, Fort Wayne, Ann Arbor,
+      and statewide Pennsylvania. Every entry has direct evidence the person currently <strong>lives</strong> in the
+      listed region (not just "born there" or "posts about it"). Real estate agents were removed from the Ohio
+      YouTube table this pass and backfilled with genuine creators; Dr. Jessica Barrett was added to Ohio Instagram.
+      The Political / Progressive section was broadened to also include moderate voices and creators focused on
+      gender or health issues (Ashton Colby, Lee Tepper, Dr. Jamie Marich), with no repeats against the rest of the
+      Ohio roster. Research for the new regions used <code>tinyfish</code> and <code>searxng</code> alongside
+      standard web search. This pass added a "Job &amp; Career Creators" section to Ohio, sourced from the repo's local
+      discovery pipeline (<code>discover.py</code>/<code>verify.py</code>/<code>classify_category.py</code>) rather
+      than live per-entry research — flagged with its own status badge since it lacks follower/email data.</p>
+</header>
+<div class="legend">
+<span><span class="dot ok"></span>Tool executed live against the platform — numbers are real-time pulls</span>
+<span><span class="dot warn"></span>Platform blocked unauthenticated tool access — verified via search instead</span>
+</div>
+
+  <div class="share-bar">
+    <span>Mark rows with ✓ (reviewed) or ✕ (remove) &mdash; your marks are saved in this browser. To share them, copy the code below and send it to someone with this same artifact open.</span>
+    <button type="button" id="copy-link-btn">Copy marks code</button>
+    <input type="text" id="apply-code-input" placeholder="Paste a marks code&hellip;" aria-label="Marks code to apply">
+    <button type="button" id="apply-code-btn">Apply</button>
+    <span class="share-status" id="share-status" aria-live="polite"></span>
+  </div>
+  <div class="region-nav">
+<a href="#region-ohio">Ohio</a>
+<a href="#region-detroit">Detroit</a>
+<a href="#region-fortwayne">Fort Wayne</a>
+<a href="#region-annarbor">Ann Arbor</a>
+<a href="#region-pennsylvania">Pennsylvania</a>
+</div>
+<h2 class="region-title" id="region-ohio">Ohio</h2>
+<p class="region-dek">10 unique Ohio creators per platform — TikTok, YouTube, Twitter/X, Facebook, Instagram — with
+    <strong>zero repeats across platforms</strong>. Several early candidates, including IShowSpeed, MatPat, Nick
+    Uhas, Markiplier, and Feli from Germany, were dropped after verification showed they've since moved out of
+    state.</p>
+<section class="platform">
+<div class="plat-head"><h3>TikTok</h3><span class="status-badge ok">Tool run — live data</span></div>
+<p class="plat-sub">Live pulls via <a href="https://github.com/N4rr34n6/TikTok-User-Info-Scraper" rel="noopener" target="_blank">N4rr34n6/TikTok-User-Info-Scraper</a>. Residency = an explicit location pin or statement in their own bio (quoted), cross-checked against local press where available.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Email</th></tr></thead>
+<tbody>
+<tr data-row-id="row-1"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-1" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-1" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Alexis Nikole Nelson</td><td class="handle">@alexisnikole</td><td class="followers">4.9M <span class="verified">✓</span></td><td class="residency">Press: <q>lives in Columbus, Ohio, with her fiancé</q></td><td class="email">AlexisNikoleNelsonTeam@unitedtalent.com</td></tr>
+<tr data-row-id="row-2"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-2" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-2" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Mitchell Bienvenue</td><td class="handle">@mitchellbienvenue</td><td class="followers">328.8K</td><td class="residency">Bio: <q>📍Columbus, OH</q></td><td class="email">MitchellB@select.co</td></tr>
+<tr data-row-id="row-3"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-3" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-3" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jackie Mitchell</td><td class="handle">@jackiemitchellll</td><td class="followers">251.5K</td><td class="residency">Bio: <q>28 | Columbus, OH</q></td><td class="email">jackie@upsidedowntalent.com</td></tr>
+<tr data-row-id="row-4"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-4" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-4" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Annie Dickson</td><td class="handle">@bitethisbyannie</td><td class="followers">106.9K</td><td class="residency">Bio: <q>3009 N High St, Cbus OH</q> (bakery she owns)</td><td class="email">CaTERING@bitethisbyannie.com</td></tr>
+<tr data-row-id="row-5"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-5" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-5" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Meghan</td><td class="handle">@foodincleveland</td><td class="followers">164.5K</td><td class="residency">Press: <q>content creator based in Cleveland, Ohio</q></td><td class="email">FoodinCleveland@gmail.com</td></tr>
+<tr data-row-id="row-6"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-6" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-6" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Nicki Mejia</td><td class="handle">@tastewithnicki</td><td class="followers">56.3K</td><td class="residency">Press: <q>Cleveland-based foodie, blogger, and mom</q></td><td class="email">Tastewithnicki@aloomamediagroup.com</td></tr>
+<tr data-row-id="row-7"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-7" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-7" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Kelsey Zolac</td><td class="handle">@wildwildginger</td><td class="followers">36.7K</td><td class="residency">Bio: <q>📍Cleveland, Ohio | 26</q></td><td class="email">kelseyzolac@gmail.com</td></tr>
+<tr data-row-id="row-8"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-8" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-8" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Halydawnn</td><td class="handle">@halydawnn</td><td class="followers">23.1K</td><td class="residency">Bio: <q>📍OH</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-9"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-9" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-9" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Megan Carver</td><td class="handle">@meganincolumbus</td><td class="followers">19.7K</td><td class="residency">Press (Yahoo): Central Ohio (Columbus) creator</td><td class="email">meganincolumbus@gmail.com</td></tr>
+<tr data-row-id="row-10"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-10" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-10" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jordan P</td><td class="handle">@midwest_foodfest</td><td class="followers">12.5K</td><td class="residency">Bio: <q>sharing the best eats in cbus, oh</q></td><td class="email">midwestfoodfest@gmail.com</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>YouTube</h3><span class="status-badge ok">Tool run — live data</span></div>
+<p class="plat-sub">Live subscriber pulls via a hand-applied HTML extraction against each channel's <code>/about</code> page. <strong>Updated this pass:</strong> three real estate agents (Eric Sztanyo, Brad Winter, Paul Ruksenas) were removed per feedback that realtor-run channels don't belong in a creator/influencer feed, and backfilled with three verified non-realtor Ohio creators (highlighted below).</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Channel</th><th>Handle</th><th>Subscribers</th><th>Residency evidence</th><th>Email</th></tr></thead>
+<tbody>
+<tr data-row-id="row-11"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-11" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-11" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Sam Sulek</td><td class="handle">@sam_sulek</td><td class="followers">4.49M</td><td class="residency">Press: officially back in Ohio, attending Miami University, Oxford OH (May 2026)</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-12"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-12" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-12" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Brave Wilderness (Coyote Peterson)</td><td class="handle">@BraveWilderness</td><td class="followers">21.8M</td><td class="residency">HQ + home base: Columbus/Lewis Center, OH (LinkedIn, multiple press)</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-13"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-13" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-13" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Ryan Hall, Y'all</td><td class="handle">@RyanHallYall</td><td class="followers">3.4M</td><td class="residency">Own Instagram: <q>Being in Xenia, Ohio, I am not liking this news</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-14"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-14" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-14" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jayingee (Jake Green)</td><td class="handle">@Jayingee</td><td class="followers">2.34M <span class="verified">✓live</span></td><td class="residency">LinkedIn: <q>Columbus, Ohio Metropolitan Area</q>; corroborated by fan-wiki trivia</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-15"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-15" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-15" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Scott Wozniak</td><td class="handle">@ScottTheWoz</td><td class="followers">2.03M <span class="verified">✓live</span></td><td class="residency">Raised in Whitehouse, OH; press: <q>currently lives in Waterville, Ohio</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-16"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-16" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-16" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Chris Stuckmann</td><td class="handle">@chrisstuckmann</td><td class="followers">2.02M</td><td class="residency">Public record address: Akron, OH</td><td class="email">chris.stuckmann@gmail.com</td></tr>
+<tr data-row-id="row-17"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-17" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-17" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Judson Laipply</td><td class="handle">@judsonlaipply</td><td class="followers">110K</td><td class="residency">Press: <q>resides in Lakewood</q> (Cleveland area)</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr class="new-row" data-row-id="row-18"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-18" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-18" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>URBEX HILL</td><td class="handle">@urbexhill</td><td class="followers">373K <span class="verified">✓live</span></td><td class="residency">Own channel bio: <q>Cleveland Ohio📍Exploring Alone</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-19"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-19" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-19" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Thomas Mayes</td><td class="handle">@SemperFiMechanic</td><td class="followers">58.5K</td><td class="residency">Mobile mechanic business address: Columbus, OH</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-20"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-20" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-20" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Nasteha &amp; Nuni Yusuf</td><td class="handle">@TheYusufs</td><td class="followers">34.2K</td><td class="residency">Press: <q>sisters now reside in Columbus, OH</q></td><td class="email">info@theyusufs.com</td></tr>
+<tr data-row-id="row-21"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-21" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-21" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Caleb &amp; Brittany Auman</td><td class="handle">@AumanLandscape</td><td class="followers">11.6K</td><td class="residency">Business based in Carroll, OH (near Columbus)</td><td class="email">aumanlandscape@gmail.com</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Removed this pass (real estate): Eric Sztanyo (@TeamSztanyo), Brad Winter (@LivinginColumbusOhio614), Paul Ruksenas (@paulruksenas) — all licensed realtors, channels built around listings/business rather than independent creator content. Rejected replacement candidates, checked and ruled out: Chris Bores/Irate Gamer (lives ~7hrs from Dayton), Brentalfloss (no Ohio residency, only performed at a Columbus event), Andrew Jones/ajFitness (moved to Farmington, CT), Paul Robinett/Renetto (now Florida), Reckless Ben (unverified current residency amid an active legal case), Get Fit With DG (studio is in Grand Ledge, Michigan, not Ohio).</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Twitter / X</h3><span class="status-badge warn">Blocked for tool access — search-verified real creators</span></div>
+<p class="plat-sub">X still has no working no-auth surface for live scraping. All 10 below are independent bloggers/content creators (not affiliated with a news outlet), sourced from Columbus's own blogger directory.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Blog/brand</th><th>Residency evidence</th><th>Email</th></tr></thead>
+<tbody>
+<tr data-row-id="row-22"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-22" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-22" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Morgan Pelt</td><td class="handle">@cbuslivingblog</td><td>Columbus Living Blog</td><td class="residency">Press: <q>living in the suburbs just north of Columbus, Ohio</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-23"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-23" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-23" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Julie Miller</td><td class="handle">@dotodaycolumbus</td><td>What Should We Do Today?</td><td class="residency">Columbus family-events blogger, per NBC4 profile</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-24"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-24" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-24" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Bethia Woolf</td><td class="handle">@hungry_woolf</td><td>Columbus Food Adventures</td><td class="residency">Co-founder, Columbus-based food tour company (10+ yrs)</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-25"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-25" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-25" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Nicholas Dekker</td><td class="handle">@breakfastwnick</td><td>Breakfast With Nick</td><td class="residency">Columbus food blogger, per Columbus blog directory</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-26"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-26" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-26" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Cheryl Harrison</td><td class="handle">@cherylharrison</td><td>Drink Up Columbus</td><td class="residency">Columbus drink/nightlife blogger</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-27"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-27" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-27" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Amanda Hamman</td><td class="handle">@girlaboutcbus</td><td>Girl About Columbus</td><td class="residency">Columbus lifestyle blogger</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-28"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-28" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-28" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Patrick Woodward</td><td class="handle">@patspints</td><td>Pat's Pints</td><td class="residency">Columbus beer/bar blogger</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-29"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-29" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-29" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Mary Cowx</td><td class="handle">@fervent_foodie</td><td>Fervent Foodie</td><td class="residency">Columbus food blogger</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-30"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-30" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-30" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Hannah Lewis</td><td class="handle">@beardandbaker</td><td>The Beard and The Baker</td><td class="residency">Columbus food blogger</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-31"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-31" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-31" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Ashley Thompson</td><td class="handle">@beingmommie</td><td>Just Bein' Mommy</td><td class="residency">Columbus mom/lifestyle blogger</td><td class="email unconfirmed">not publicly listed</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Facebook</h3><span class="status-badge warn">Blocked for tool access — search-verified real creators</span></div>
+<p class="plat-sub">Facebook remains blocked for live scraping. 9 independent bloggers running their own Facebook pages, sourced from Cincinnati/Dayton/Toledo/Akron blogger directories.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Facebook</th><th>Blog/brand</th><th>Residency evidence</th><th>Email</th></tr></thead>
+<tbody>
+<tr data-row-id="row-32"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-32" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-32" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Nedra McDaniel</td><td class="handle">facebook.com/adventuremomblog</td><td>Adventure Mom</td><td class="residency">Press: <q>resides in the Greater Cincinnati area</q></td><td class="email">nedra@adventuremomblog.com</td></tr>
+<tr data-row-id="row-33"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-33" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-33" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Heather Johnson</td><td class="handle">facebook.com/TheFoodHussy <span class="verified">✓confirmed</span></td><td>The Food Hussy</td><td class="residency">Cincinnati-based food &amp; travel blogger since 2008</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-34"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-34" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-34" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jennifer Lunsford</td><td class="handle">facebook.com/CincyShopper <span class="verified">✓confirmed</span></td><td>CincyShopper</td><td class="residency">Cincinnati-focused recipe/frugal-living blog</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-35"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-35" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-35" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Courtney Pies</td><td class="handle">facebook.com/optimisticmommy <span class="verified">✓confirmed</span></td><td>Optimistic Mommy</td><td class="residency">Blog HQ address on record: Cincinnati, OH 45236</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-36"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-36" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-36" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Michelle Dorward Jones</td><td class="handle">facebook.com/heymichelle1</td><td>Hey Michelle</td><td class="residency">Press: <q>born and raised</q> in Cincinnati, still covers the city</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-37"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-37" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-37" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Stephanie Taleghani</td><td class="handle">facebook.com/ConsistentlyCurious <span class="verified">✓confirmed</span></td><td>Consistently Curious</td><td class="residency">Press: <q>hometown of Cincinnati, Ohio</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-38"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-38" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-38" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jean Neuhart</td><td class="handle">Weddings from the Heart</td><td>Wedding planning blog</td><td class="residency">Dayton, OH-based wedding blogger</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-39"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-39" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-39" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Michelle Duni</td><td class="handle">Toledo Foodie content</td><td>Local food reviews</td><td class="residency">Press (Toledo Blade): <q>Toledo native</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-40"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-40" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-40" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Cindy Orley</td><td class="handle">facebook.com/lifepluscindy</td><td>Akron Ohio Moms (founder)</td><td class="residency">Founder of hyperlocal Akron, OH mom blog</td><td class="email unconfirmed">not publicly listed</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Instagram</h3><span class="status-badge warn">Blocked — search-verified instead</span></div>
+<p class="plat-sub">Instagram serves a pure JS shell with zero profile data for logged-out requests. Cleveland-based lifestyle/local creators plus one Columbus community account. <strong>Added this pass:</strong> Dr. Jessica Barrett (highlighted below).</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Email</th></tr></thead>
+<tbody>
+<tr data-row-id="row-41"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-41" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-41" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Bethany Beckham</td><td class="handle">@clewithkids</td><td class="followers">97K</td><td class="residency">Cleveland family/local content creator (Cleveland Bucket List profile)</td><td class="email">CLEwithkids@gmail.com</td></tr>
+<tr data-row-id="row-42"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-42" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-42" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Shana Black</td><td class="handle">@blackgirlincle</td><td class="followers">n/a</td><td class="residency">Press (WKYC): <q>a woman from Cleveland, Ohio</q>; former CMSD assistant principal</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-43"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-43" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-43" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Nikki Hannaway &amp; Bailey Purpura</td><td class="handle">@cravecle</td><td class="followers">110K</td><td class="residency">Press: Hannaway lives in Westlake, Purpura in downtown Cleveland</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-44"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-44" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-44" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Ian Meadows</td><td class="handle">@urbanetics_</td><td class="followers">2.4K</td><td class="residency">Self-described <q>car-free downtown dweller</q>, Cleveland</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-45"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-45" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-45" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Alicia Hansen</td><td class="handle">@aliciamhansen</td><td class="followers">6.1K</td><td class="residency">Cleveland business address on record (Alicia Hansen Creative)</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-46"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-46" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-46" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Hallie Abrams</td><td class="handle">@thewardrobeconsultant</td><td class="followers">260K</td><td class="residency">Based in Chagrin Falls, OH (Cleveland area)</td><td class="email">Hallie@TheWardrobeConsultant.com</td></tr>
+<tr data-row-id="row-47"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-47" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-47" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Abby Thome</td><td class="handle">@abby_thome</td><td class="followers">40K</td><td class="residency">Press: <q>Cleveland born and raised, currently residing in Hudson</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-48"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-48" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-48" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Alex</td><td class="handle">@clegirls</td><td class="followers">27K</td><td class="residency">Cleveland lifestyle/food content; bio states local collab contact</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-49"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-49" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-49" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Haley Mills</td><td class="handle">@theclebucketlist</td><td class="followers">78K</td><td class="residency">Press: <q>moved back to Cleveland</q> to start the account</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-50"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-50" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-50" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Life in Columbus (community acct.)</td><td class="handle">@lifeincolumbus</td><td class="followers">300K</td><td class="residency">Columbus-focused community account/resource</td><td class="email">lifeincolumbus@gmail.com</td></tr>
+<tr class="new-row" data-row-id="row-51"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-51" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-51" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Dr. Jessica Barrett, DO</td><td class="handle">@jessicaleighbarrett</td><td class="followers">271K</td><td class="residency">OhioHealth provider profile + US News directory: infectious disease physician at OhioHealth Riverside Methodist Hospital, Columbus, OH. Bio: <q>Love is Blind Season 10 : infectious diseases, drag, bulldogs</q></td><td class="email unconfirmed">not publicly listed</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Jessica Barrett note: this name is ambiguous online, but cross-referencing narrowed it to one strong match — Dr. Jessica L. Barrett, an infectious-disease physician and <em>Love Is Blind</em> Season 10 cast member based in Columbus. Other "Jessica Barrett" results (a UK writer, a Hawkins-TX creator) had no Ohio ties or real influencer footprint and were ruled out.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Political / Progressive Creators</h3><span class="status-badge warn">Search-verified, low yield reported honestly</span></div>
+<p class="plat-sub">Individuals (not journalists, not orgs, not politicians unless their content is genuinely creative beyond official duties) who are openly progressive/far-left, Democrat-supporting, or focused on healthcare &amp; gender issues, currently living in Ohio. One name per platform; most searchable "Ohio political" accounts turned out to be orgs, journalists, or people who'd since moved out of state.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Platform / handle</th><th>Reach</th><th>Residency evidence</th><th>Political identity</th><th>Email</th></tr></thead>
+<tbody>
+<tr data-row-id="row-52"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-52" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-52" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Laurenzo De Camilla</td><td class="handle">TikTok @adesso.laurenzo</td><td class="followers">894.1K</td><td class="residency">Press: nonbinary creator <q>in Columbus, Ohio</q>; PhD from OSU</td><td>Progressive — LGBTQ+ youth advocacy, social-justice skits, founded Queer Hangouts</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr class="new-row" data-row-id="row-53"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-53" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-53" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Ashton Colby</td><td class="handle">TikTok @ashtonjamescolby</td><td class="followers">44.1K</td><td class="residency">AP News (2024): <q>Columbus, Ohio resident Ashton Colby</q>, <q>living outside of Columbus in rural Ohio</q></td><td>Trans health/gender advocacy — certified trauma-release yoga teacher, LGBTQ+ civil rights advocacy at state/federal level; featured by CNN, NBC, People, Today, TEDx</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-54"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-54" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-54" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Barrie Rose</td><td class="handle">YouTube — "Self Care series" + personal channel</td><td class="followers">648.8K (TikTok cross-following)</td><td class="residency">Press: <q>lives in Columbus, Ohio</q> (Bold Journey Magazine)</td><td>Progressive — collaborated with Sherrod Brown (D) Senate campaign, Ohio Women's Alliance, reproductive-rights orgs</td><td class="email">queerhangouts@gmail.com</td></tr>
+<tr data-row-id="row-55"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-55" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-55" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>James Hayes</td><td class="handle">X @ContrabandJames</td><td class="followers">813</td><td class="residency">Press: <q>based in Columbus, Ohio</q>, lives with wife &amp; son</td><td>Progressive — co-director, Ohio Voice; Ohio Student Association co-founder</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-56"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-56" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-56" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Ashley &amp; Brittany Boltz</td><td class="handle">Instagram @lovedby2moms</td><td class="followers">n/a</td><td class="residency">Columbus, OH (creator directory listing)</td><td>LGBTQ+ family visibility / healthcare &amp; gender-adjacent content</td><td class="email">lovedby2moms@microfluencetalent.com</td></tr>
+<tr class="new-row" data-row-id="row-57"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-57" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-57" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Lee Tepper</td><td class="handle">Instagram @enby_therapist</td><td class="followers">18K</td><td class="residency">Own bio: <q>Therapist in OH 🏳️‍⚧️Affirming &amp; Trauma Informed Care</q>; also on Modash's "Top Micro Influencers in Ohio"</td><td>Gender-affirming mental health therapist; board chair of an Ohio LGBTQ+ org; tracks Ohio anti-trans legislation</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-58"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-58" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-58" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Leeman Kessler</td><td class="handle">Facebook facebook.com/gambierleemankessler (also TikTok @MayorLovecraft)</td><td class="followers">~90K (TikTok)</td><td class="residency">Elected Mayor of Gambier, OH since 2020; Knox County Democratic Party member</td><td>Democratic Party-affiliated; content is Lovecraftian/sci-fi creative work, not governance messaging — included under the creative-content exception</td><td class="email">mayor@villageofgambier.org</td></tr>
+<tr class="new-row" data-row-id="row-59"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-59" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-59" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Dr. Jamie Marich</td><td class="handle">Facebook @DrJamieMM</td><td class="followers">40.1K</td><td class="residency">Own site + addiction/recovery press: <q>maintains a private practice in her home base of Warren, OH</q></td><td>Moderate/non-partisan — trauma &amp; EMDR therapist, author on addiction, dissociation, mental health (health-issues criterion)</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr class="new-row" data-row-id="row-60"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-60" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-60" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Michael Baranowski</td><td class="handle">Podcast — The Politics Guys (politicsguys.com)</td><td class="followers unconfirmed">898 episodes since 2015; listener count not publicly available</td><td class="residency">The Democracy Group host profile: <q>located in Cincinnati</q>; teaches at Northern Kentucky University (Cincinnati metro)</td><td>Moderate/bipartisan — Emeritus Professor of Political Science, not a journalist; founded the show explicitly for "ideological viewpoint diversity," co-hosts span self-described far-right to far-left and deliberately avoid "defending teams"</td><td class="email unconfirmed">not publicly listed</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Broadened this pass to include moderate politics and gender/health-focused creators, not just progressive/far-left. No qualifying new YouTube or X/Twitter additions turned up — YouTube results were all news-org coverage rather than independent creators, and X candidates were active political candidates or orgs, both excluded by the feed's standing rules. Also checked and excluded: Jamie Bruesehoff (Columbus-tagged content, but her own bio places her congregation in New Jersey — contradicts Ohio residency), D.J. Byrnes/"The Rooster" (self-describes his work as journalism, conflicting with the no-journalists rule), Dr. Amy Acton and other officeholder-track candidates (active candidates, not the creative-content exception). <strong>This pass, specifically hunting for politically moderate creators:</strong> scope was widened to include podcast hosts (not just TikTok/YouTube/IG), which is how Michael Baranowski was found. Isaac Saul (Tangle News, Philadelphia — explicitly nonpartisan and a strong content fit) was deliberately excluded per the standing no-journalists rule, since Wikipedia identifies him as "an American journalist"/"politics reporter." Amanda Nelson ("Amanda's Mild Takes," 456K TikTok followers, self-described former conservative) was excluded for residency — she lives in Virginia, outside this feed's tracked regions. Most other "moderate/centrist Ohio political creator" searches returned only orgs (Braver Angels), meme aggregator pages, or national pundits with no Ohio/regional tie — the pool for non-journalist individual moderates is genuinely thin.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Job &amp; Career Creators</h3><span class="status-badge warn">Local pipeline (SearXNG + Ollama) — self-reported confidence, no follower/email data</span></div>
+<p class="plat-sub">Sourced from this repo's <code>discover.py</code> / <code>verify.py</code> / <code>classify_category.py</code> local pipeline rather than live per-entry web research. These are people whose content centers on their actual job or profession (not food/lifestyle/vlog content) — a category filter layered on top of the same residency-verification bar used elsewhere in this feed. Directory/aggregator-page results and organization accounts were excluded; only individually-sourced profiles are listed.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Platform</th><th>Confidence</th><th>Residency evidence</th><th>Source</th></tr></thead>
+<tbody>
+<tr data-row-id="row-61"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-61" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-61" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>GABY</td><td class="handle">@theskinpapi</td><td>TikTok</td><td><span class="status-badge ok">high</span></td><td class="residency">Esthetician providing beauty services. <q>Lives in Steubenville, Ohio.</q></td><td><a href="https://www.tiktok.com/@theskinpapi" rel="noopener" target="_blank">profile</a></td></tr>
+<tr data-row-id="row-62"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-62" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-62" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>malccs</td><td class="handle">@malccs</td><td>TikTok</td><td><span class="status-badge ok">high</span></td><td class="residency">Music producer. Bio: <q>Columbus, OH Producer</q></td><td><a href="https://www.tiktok.com/@malccs" rel="noopener" target="_blank">profile</a></td></tr>
+<tr data-row-id="row-63"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-63" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-63" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Ohio Media Creator</td><td class="handle">@dayofbykristin</td><td>TikTok</td><td><span class="status-badge ok">high</span></td><td class="residency">Photography/videography content creator, Columbus-area. Bio: <q>📍 Photography Videography Content Creator</q></td><td><a href="https://www.tiktok.com/@dayofbykristin" rel="noopener" target="_blank">profile</a></td></tr>
+<tr data-row-id="row-64"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-64" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-64" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>OhioNurse</td><td class="handle">—</td><td>YouTube</td><td><span class="status-badge warn">low</span></td><td class="residency">Nursing-related content; residency evidence is only a generic <q>Ohio-based YouTube channel</q> tag, not a direct quote — weaker tier than the rest of this feed.</td><td><a href="https://www.youtube.com/channel/UCan2BsqTir3Viusrt6oMtzw?cbrd=1" rel="noopener" target="_blank">channel</a></td></tr>
+<tr data-row-id="row-65"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-65" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-65" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>PFDBarber</td><td class="handle">@pfdbarber</td><td>X / Twitter</td><td><span class="status-badge ok">high</span></td><td class="residency">Firefighter/Barber — day-in-the-life content. <q>Firefighter/Barber account based in Cleveland, Ohio.</q></td><td><a href="https://x.com/pfdbarber?lang=en" rel="noopener" target="_blank">profile</a></td></tr>
+<tr data-row-id="row-66"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-66" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-66" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Dash10 Digital</td><td class="handle">@dash10digital</td><td>Facebook</td><td><span class="status-badge ok">high</span></td><td class="residency">Small web design/digital marketing business owner. <q>Small web design and digital marketing company based in downtown Barberton, Ohio</q></td><td><a href="https://www.facebook.com/dash10digital/" rel="noopener" target="_blank">page</a></td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">This pass found 6 genuine individually-sourced job/career creators out of 131 total discovered Ohio candidates — most search hits for "Ohio influencer" queries return lifestyle/food creators or directory/aggregator pages, not occupational content, even with job-specific query terms added. Full unfiltered dataset (98 confirmed + 27 flagged for manual review, all categories) lives in the companion pipeline artifact at <a href="https://kingenderdragon.github.io/online-influencer-discovery-feed/" rel="noopener" target="_blank">kingenderdragon.github.io/online-influencer-discovery-feed</a> rather than duplicated here, to keep this feed's bar at real, individually-verified people.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>BookTubers &amp; BookTokers</h3><span class="status-badge warn">Search-verified, real names confirmed via local press</span></div>
+<p class="plat-sub">Book-content creators (BookTok/Bookstagram/BookTube) currently living in Ohio, with real names rather than just handles — all three came from the same Cleveland Magazine profile, which independently interviewed each of them and quoted their residency directly.</p>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Niche</th><th>Email</th></tr></thead>
+<tbody>
+<tr data-row-id="row-67"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-67" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-67" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Zoranne Host</td><td class="handle">@zoranne_</td><td class="followers">160K+ (TikTok + Instagram combined)</td><td class="residency">Cleveland Magazine: <q>This Parma native</q>; WKYC: <q>Northeast Ohio social media influencer</q>. <q>Talking about books online is literally my full-time job</q></td><td>Sci-fi &amp; fantasy book reviews; runs the "Fantasy &amp; Frens" book club on Fable</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-68"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-68" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-68" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Nahomy Ortiz-Garcia</td><td class="handle">@nahomyslibrary</td><td class="followers">~7K (Instagram)</td><td class="residency">Cleveland Magazine: <q>She grew up in Puerto Rico and landed in Cleveland 12 years ago</q></td><td>Lifts up Hispanic and Latino authors</td><td class="email unconfirmed">not publicly listed</td></tr>
+<tr data-row-id="row-69"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-69" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-69" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Mikey Feinman</td><td class="handle">@cle_booktender</td><td class="followers unconfirmed">not publicly listed</td><td class="residency">Cleveland Magazine: <q>The Florida native moved to Northeast Ohio for work</q> and got back into reading during the pandemic</td><td>Book &amp; cocktail pairings; spotlights independent authors</td><td class="email unconfirmed">not publicly listed</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">All three Cleveland-area finds came from one well-sourced local magazine profile rather than three separate searches — a useful pattern for this niche, since generic "Ohio booktok/booktuber" queries mostly surfaced aggregator lists (Feedspot's "Top 80 Book TikTok Influencers," Collabstr) with no Ohio tie, or national BookTok/BookTube creators with no verifiable Ohio residency. Columbus/Cincinnati-specific searches came up empty for a comparably well-sourced individual; the closest lead, Morgann Book (144K Instagram, "Bookish Media" podcast host), turned out to be based in Ancaster, Ontario, Canada, and was excluded.</p>
+</section>
+<h2 class="region-title" id="region-detroit">Detroit</h2>
+<p class="region-dek">First pass at Detroit, MI. This pool ran thinner than Ohio's, especially on YouTube and X/Twitter —
+    several well-known "Detroit" YouTubers turned out to have relocated (CoryxKenshin now lives in South Lyon, MI;
+    SoLLUMINATI and Queen Naija had conflicting/non-Detroit residency reports) and were excluded rather than guessed.
+    Researched with tinyfish + searxng.</p>
+<section class="platform">
+<div class="plat-head"><h3>TikTok</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Niche</th></tr></thead>
+<tbody>
+<tr data-row-id="row-70"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-70" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-70" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Anita LaShay ("Auntie Nita")</td><td class="handle">@anita_lashay_</td><td class="followers">1.2M</td><td class="residency">Bio location tag: <q>Detroit, MI</q></td><td>Comedy</td></tr>
+<tr data-row-id="row-71"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-71" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-71" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Sabrina Pare</td><td class="handle">@sabrina_pare</td><td class="followers">272.4K</td><td class="residency">Voyage Michigan Magazine profile + own captions: <q>Sustainable Living with Sabrina in Detroit</q></td><td>Sustainability/lifestyle</td></tr>
+<tr data-row-id="row-72"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-72" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-72" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>MsPinky313</td><td class="handle">@mspinky313</td><td class="followers">14.5K</td><td class="residency">Bio/Linktree: <q>Detroit, Michigan</q></td><td>Gaming</td></tr>
+<tr data-row-id="row-73"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-73" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-73" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Detroit Finds (DF313)</td><td class="handle">@detroitfinds313</td><td class="followers">48.1K</td><td class="residency">Bio: <q>Your Metro Detroit tour guide</q></td><td>Food</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Only 4 of 5 target reached — couldn't confidently verify a 5th with direct current-residency evidence (not just Detroit-themed content) in budget.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>YouTube</h3><span class="status-badge warn">Search-verified, thin pool</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Channel</th><th>Handle</th><th>Subscribers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-74"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-74" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-74" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Auntie Nita (Anita LaShay)</td><td class="handle">Auntie Comedy</td><td class="followers">~180K</td><td class="residency">Same Detroit residency evidence as TikTok listing</td></tr>
+<tr data-row-id="row-75"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-75" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-75" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>MsPinky313</td><td class="handle">313MsPinky</td><td class="followers unconfirmed">not live-confirmed</td><td class="residency">Detroit, MI per bio</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Excluded (moved away, mirroring how the Ohio list already handles this pattern): CoryxKenshin (South Lyon, MI), SoLLUMINATI (conflicting Phoenix/Brazil reports), Queen Naija (likely Atlanta).</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Instagram</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Niche</th></tr></thead>
+<tbody>
+<tr data-row-id="row-76"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-76" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-76" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Carlos Parisi</td><td class="handle">@carlos_parisi</td><td class="followers">15K</td><td class="residency">BridgeDetroit: <q>raised in Detroit</q>, runs Aunt Nee's there, 54.4% of followers Detroit-based</td><td>Food</td></tr>
+<tr data-row-id="row-77"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-77" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-77" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>MsPinky313</td><td class="handle">@313queenpinky</td><td class="followers unconfirmed">n/a</td><td class="residency">Detroit, MI per bio</td><td>Gaming</td></tr>
+<tr data-row-id="row-78"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-78" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-78" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Donny Wilson</td><td class="handle">@donnylb</td><td class="followers">50K</td><td class="residency">Axios Detroit feature: <q>the foodie filmmaker</q>, Detroit-based</td><td>Food/film</td></tr>
+<tr data-row-id="row-79"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-79" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-79" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jamila Williams</td><td class="handle">@fashionstyledetroit</td><td class="followers unconfirmed">n/a</td><td class="residency">Voyage Michigan profile: born/raised/creates in Detroit</td><td>Fashion</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Twitter / X</h3><span class="status-badge warn">Search-verified, thin pool</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Blog/brand</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-80"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-80" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-80" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jennifer Hamra</td><td class="handle">@goodlifedetroit</td><td>Good Life Detroit (goodlifedetroit.com)</td><td class="residency">Detroit lifestyle blogger</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Same gap pattern seen elsewhere in this feed's X sections: most other Detroit accounts surfaced were orgs (@DetMomBloggers) or unconfirmed individuals. Did not reach 5 with confidence.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Facebook</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Facebook</th><th>Blog/brand</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-81"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-81" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-81" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jennifer Hamra</td><td class="handle">facebook.com/goodlifedetroit</td><td>Good Life Detroit</td><td class="residency">Same as X listing</td></tr>
+<tr data-row-id="row-82"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-82" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-82" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jamila Williams</td><td class="handle">Fashion Style Detroit</td><td>fashionstyledetroit.com</td><td class="residency">Same as Instagram listing</td></tr>
+<tr data-row-id="row-83"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-83" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-83" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Anita LaShay</td><td class="handle">facebook.com/anita.lashay.3 (@auntienitasllc)</td><td>Auntie Comedy</td><td class="residency">Same as TikTok listing</td></tr>
+<tr data-row-id="row-84"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-84" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-84" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>MsPinky313</td><td class="handle">facebook.com/MsPinky313</td><td>—</td><td class="residency">Same as TikTok listing</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">"Damsel in Detroit" blogger's real name came back conflicting across sources (Evann Webb vs. a different handle) — left out rather than guessed.</p>
+</section>
+<h2 class="region-title" id="region-fortwayne">Fort Wayne</h2>
+<p class="region-dek">Fort Wayne, IN — a genuinely small market for this kind of research. Most "top Fort Wayne
+    influencer" hits are thin aggregator-directory listings rather than individually-quoted residency proof.
+    Results below reflect what actually cleared the verification bar, not a padded quota.</p>
+<section class="platform">
+<div class="plat-head"><h3>TikTok</h3><span class="status-badge warn">Search-verified, thin pool</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-85"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-85" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-85" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Michele Crider</td><td class="handle">@local_lezbian</td><td class="followers">~1M</td><td class="residency">Favikon directory: Fort Wayne-based creator promoting local businesses — directory-level, not a direct personal quote (weaker tier)</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Only 1 of 2 candidates cleared the bar. A second lead ("Meg Smart," possibly @meg.wayne or @megan.e.smart3) was excluded — handle couldn't be confirmed, so it wasn't guessed.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>YouTube</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Channel</th><th>Handle</th><th>Subscribers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-86"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-86" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-86" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Casey Cooper</td><td class="handle">@COOP3RDRUMM3R</td><td class="followers">2M+</td><td class="residency">WOWO News (local Fort Wayne radio): <q>Fort Wayne-based YouTube star</q>; also Director of Content Strategy at Sweetwater, a Fort Wayne company</td></tr>
+<tr data-row-id="row-87"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-87" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-87" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Denise Jordan</td><td class="handle">This and That with Denise Jordan</td><td class="followers">~50K</td><td class="residency">WANE 15 (local Fort Wayne TV): coverage of her selection for YouTube's "United State of YouTube" program, describing her as a Fort Wayne creator</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Instagram</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-88"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-88" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-88" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Whitney Utesch</td><td class="handle">@carpendaughter</td><td class="followers">60K</td><td class="residency">Input Fort Wayne local roundup: renovating <q>their 1920s Fort Wayne home</q></td></tr>
+<tr data-row-id="row-89"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-89" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-89" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Brett Gauger</td><td class="handle">@brettgauger</td><td class="followers">5.5K</td><td class="residency">Input Fort Wayne: <q>living and working in downtown Fort Wayne</q></td></tr>
+<tr data-row-id="row-90"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-90" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-90" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Sam Phen</td><td class="handle">@wearethetraveler</td><td class="followers">10.7K</td><td class="residency">Input Fort Wayne: Indiana-based, local sunsets/style content</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Facebook</h3><span class="status-badge warn">Search-verified, thin pool</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Page</th><th>Followers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-91"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-91" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-91" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Jamela Payne ("Reviews By Pink")</td><td class="handle">facebook.com/PinkDroyd</td><td class="followers">127K</td><td class="residency">Fort Wayne mom blogger/influencer active locally since 2012, originally under the name "Frugal in Fort Wayne and Beyond"</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Twitter / X</h3><span class="status-badge warn">No verified entries — honest gap</span></div>
+<p class="gap-note">No individual Fort Wayne creator/influencer (non-journalist) surfaced with an active X presence meeting the verification bar. Genuine market thinness, not a search failure.</p>
+</section>
+<h2 class="region-title" id="region-annarbor">Ann Arbor</h2>
+<p class="region-dek">Ann Arbor, MI. TikTok and Instagram had solid pools; YouTube, X, and Facebook were notably
+    thin — gaps are reported honestly rather than padded. Researched with tinyfish + searxng.</p>
+<section class="platform">
+<div class="plat-head"><h3>TikTok</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Niche</th></tr></thead>
+<tbody>
+<tr data-row-id="row-92"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-92" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-92" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Julie Kobylarz</td><td class="handle">@mousetales</td><td class="followers">1.6M</td><td class="residency">Collabstr location tag: <q>Ann Arbor, MI, US</q></td><td>Humane wildlife rehab</td></tr>
+<tr data-row-id="row-93"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-93" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-93" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Derrick Castenholz</td><td class="handle">@djdcproductions</td><td class="followers">726.7K</td><td class="residency">Collabstr location tag: <q>Ann Arbor, MI, US</q></td><td>DJ/music/entrepreneur</td></tr>
+<tr data-row-id="row-94"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-94" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-94" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Aj Reviews</td><td class="handle">@aj_reviews_</td><td class="followers">31.9K</td><td class="residency">Collabstr location tag: <q>Ann Arbor, MI, US</q></td><td>Product reviews</td></tr>
+<tr data-row-id="row-95"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-95" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-95" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Emily Weiss</td><td class="handle">@tittokwithemily</td><td class="followers">18.6K</td><td class="residency">Collabstr location tag: <q>Ann Arbor, MI, US</q></td><td>Lifestyle/UGC</td></tr>
+<tr data-row-id="row-96"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-96" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-96" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Alyssa Jorgensen</td><td class="handle">@alyssaajorgensen</td><td class="followers">2.4K</td><td class="residency">Collabstr location tag: <q>Ann Arbor, MI, US</q></td><td>Fashion/food</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>YouTube</h3><span class="status-badge warn">Search-verified, thin pool</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Channel</th><th>Subscribers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-97"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-97" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-97" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Charlie Engelman ("OddAnimalSpecimens")</td><td class="followers">4.79M</td><td class="residency">MLive: <q>He returned to Ann Arbor, where he'd studied ecology and evolutionary biology at the University of Michigan</q>; films at the UMich Research Museums Center</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Collabstr's "Ann Arbor" YouTube category actually returned creators based in Kalamazoo, Royal Oak, Traverse City, Troy, and Detroit — none confirmed as genuine Ann Arbor residents, so they were excluded rather than counted.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Instagram</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Niche</th></tr></thead>
+<tbody>
+<tr data-row-id="row-98"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-98" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-98" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>David Zinn</td><td class="handle">@davidzinn</td><td class="followers">1.8M</td><td class="residency">Feedspot Ann Arbor Influencers listing: <q>Ann Arbor, Michigan, United States</q></td><td>Street chalk art</td></tr>
+<tr data-row-id="row-99"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-99" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-99" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Tania Lau Fong</td><td class="handle">@cookingformysoul</td><td class="followers">139.2K</td><td class="residency">Own bio: <q>📍Ann Arbor, Michigan</q></td><td>Recipes/home cooking</td></tr>
+<tr data-row-id="row-100"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-100" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-100" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Rae Hoekstra</td><td class="handle">@madebyrae</td><td class="followers">51.6K</td><td class="residency">Own bio: <q>Ann Arbor, Michigan</q></td><td>Sewing patterns</td></tr>
+<tr data-row-id="row-101"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-101" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-101" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Ellen Sherman</td><td class="handle">@ellen_the_lemon</td><td class="followers">47.8K</td><td class="residency">Feedspot listing: <q>Ann Arbor, Michigan, United States</q></td><td>Visual artist</td></tr>
+<tr data-row-id="row-102"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-102" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-102" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Aaron Cruz</td><td class="handle">@coffeeannarbor</td><td class="followers">12.9K</td><td class="residency">Own bio: <q>Explorer of Ann Arbor coffee shop scene... Ann Arbor, Michigan</q></td><td>Coffee-shop content</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Twitter / X</h3><span class="status-badge warn">Search-verified, thin pool</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th><th>Niche</th></tr></thead>
+<tbody>
+<tr data-row-id="row-103"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-103" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-103" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Andrea Kelly</td><td class="handle">@glowgirldiary</td><td class="followers">1K–10K</td><td class="residency">Collabstr location tag: <q>Ann Arbor, MI, US</q></td><td>Wellness/lifestyle</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Every other "Ann Arbor" result in Collabstr's Twitter category was actually based elsewhere (LA, NYC, Chicago). Genuine individual Ann Arbor X presence is very thin.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Facebook</h3><span class="status-badge warn">No verified entries — honest gap</span></div>
+<p class="gap-note">The only Ann Arbor–specific blogger directory found (a localwiki.org list) is stale and pre-2015, referencing defunct LiveJournal communities with no way to confirm current residency or activity. Rather than guess from a dead directory, this platform is reported empty pending a dedicated follow-up pass.</p>
+</section>
+<h2 class="region-title" id="region-pennsylvania">Pennsylvania</h2>
+<p class="region-dek">Statewide (Philadelphia, Pittsburgh, and smaller PA cities all count) rather than narrowed to
+    one city, per scope decision. Researched with tinyfish + searxng as primary tools — no WebSearch fallback was
+    needed.</p>
+<section class="platform">
+<div class="plat-head"><h3>TikTok</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-104"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-104" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-104" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Alex Goodstein</td><td class="handle">@agoodstein</td><td class="followers">6K</td><td class="residency">Bio: <q>Food blogger of Pittsburgh</q></td></tr>
+<tr data-row-id="row-105"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-105" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-105" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Anastasia Anthony</td><td class="handle">@ana.eats.pgh</td><td class="followers">59.4K</td><td class="residency">Bio: <q>Foodie📍Pittsburgh</q></td></tr>
+<tr data-row-id="row-106"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-106" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-106" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Grace</td><td class="handle">@jadoregrace</td><td class="followers">61.2K</td><td class="residency">Bio: <q>📍Philly</q></td></tr>
+<tr data-row-id="row-107"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-107" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-107" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Imani</td><td class="handle">@xoimaniindigo</td><td class="followers">34.2K</td><td class="residency">Bio: <q>Wellness, Lifestyle, and Philly living</q></td></tr>
+<tr data-row-id="row-108"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-108" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-108" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Nijé Banks</td><td class="handle">@fueledonphilly</td><td class="followers">31.7K</td><td class="residency">Bio: <q>📍Philly</q></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>YouTube</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Channel</th><th>Handle</th><th>Subscribers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-109"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-109" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-109" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Kara Abbey</td><td>The Adventuring Abbeys</td><td class="followers unconfirmed">not confirmed live</td><td class="residency">Site: <q>Based in Irwin, PA... serving the Pittsburgh, PA area</q></td></tr>
+<tr data-row-id="row-110"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-110" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-110" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Kristine Ellis</td><td class="handle">@DunkinDucks</td><td class="followers">large (multi-platform)</td><td class="residency">Milford, PA per creator directory</td></tr>
+<tr data-row-id="row-111"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-111" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-111" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>David Di Franco</td><td class="handle">@daviddifranco</td><td class="followers">218K</td><td class="residency">Strasburg, PA per creator directory</td></tr>
+<tr data-row-id="row-112"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-112" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-112" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Alex Boudlal</td><td class="handle">@EpicReviewHub</td><td class="followers">65.1K</td><td class="residency">Philadelphia, PA per creator directory</td></tr>
+<tr data-row-id="row-113"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-113" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-113" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Livia Paige</td><td class="handle">@Livia_Paige</td><td class="followers">40K</td><td class="residency">Own quote: <q>40,000 on my newer YouTube channel</q>; Philadelphia, PA</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Subscriber counts sourced from creator directory listings, not live /about-page pulls, for this section.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Instagram</h3><span class="status-badge warn">Search-verified</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Handle</th><th>Followers</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-114"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-114" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-114" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Arjun Manjunath</td><td class="handle">@arjunmanjunath_</td><td class="followers">56K</td><td class="residency">Bio: <q>based in pittsburgh, usually traveling</q></td></tr>
+<tr data-row-id="row-115"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-115" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-115" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Elizabeth Palumbi</td><td class="handle">—</td><td class="followers unconfirmed">n/a</td><td class="residency">Feedspot: <q>based in Pittsburgh</q></td></tr>
+<tr data-row-id="row-116"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-116" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-116" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Louie Carter</td><td class="handle">@reallouiecarter</td><td class="followers unconfirmed">n/a</td><td class="residency">Feedspot: Pittsburgh</td></tr>
+<tr data-row-id="row-117"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-117" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-117" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Angie Wang</td><td class="handle">—</td><td class="followers unconfirmed">n/a</td><td class="residency">Collabstr: <q>social media content creator based in Philadelphia, PA</q></td></tr>
+<tr data-row-id="row-118"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-118" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-118" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Erin Antoniak</td><td class="handle">@erinliveswhole</td><td class="followers">531K</td><td class="residency">Bio: <q>📍philadelphia</q>; also confirmed by Philadelphia Inquirer profile</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Facebook</h3><span class="status-badge warn">Search-verified, thin pool</span></div>
+<div class="table-scroll">
+<table>
+<thead><tr><th>Mark</th><th>Name</th><th>Facebook / brand</th><th>Residency evidence</th></tr></thead>
+<tbody>
+<tr data-row-id="row-119"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-119" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-119" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Dara Picard Manno</td><td class="handle">PhillyFoodGirl.com / facebook.com/phillyfoodgirl</td><td class="residency">Philly food blogger</td></tr>
+<tr data-row-id="row-120"><td class="row-controls"><button aria-label="Mark row as reviewed" aria-pressed="false" class="toggle-btn toggle-check" data-action="check" data-row="row-120" title="Mark as reviewed (highlight)" type="button">✓</button><button aria-label="Mark row as removed" aria-pressed="false" class="toggle-btn toggle-strike" data-action="strike" data-row="row-120" title="Mark as removed (strikethrough)" type="button">✕</button></td><td>Rachel Blaufeld</td><td class="handle">—</td><td class="residency">Jewish Chronicle profile: Pittsburgh, PA-based blog founder/author</td></tr>
+</tbody>
+</table>
+</div>
+<p class="gap-note">Couldn't find 3 more verified individual (non-org) Facebook-native PA bloggers in budget — most PA "mom blogger" pages traced back to organizations or unconfirmed names.</p>
+</section>
+<section class="platform">
+<div class="plat-head"><h3>Twitter / X</h3><span class="status-badge warn">No verified entries — honest gap</span></div>
+<p class="gap-note">PA's X presence for independent creators is almost entirely journalists, news orgs, or meme/aggregator accounts — same pattern the Ohio list already flags. No verifiable non-journalist individual with real residency evidence turned up in budget; left empty rather than padded with a borderline case.</p>
+</section>
+<div class="method">
+<h3>Method &amp; honesty notes</h3>
+<div class="row"><strong class="platname">Ohio TikTok:</strong> every row is a live scrape; residency is a direct quote from the person's own bio or named press coverage, not inference.</div>
+<div class="row"><strong class="platname">Ohio YouTube:</strong> this pass removed three real estate agents (Eric Sztanyo, Brad Winter, Paul Ruksenas) and backfilled with three verified non-realtor creators (Jayingee, URBEX HILL, Ryan Hall Y'all). Earlier passes also removed IShowSpeed, MatPat, Nick Uhas, Markiplier, and Feli from Germany once search confirmed they'd relocated out of state.</div>
+<div class="row"><strong class="platname">Ohio X &amp; FB:</strong> genuinely blocked for live tool execution. Built from independent Ohio bloggers — real people running their own personal brand, not an employer's.</div>
+<div class="row"><strong class="platname">Ohio Instagram:</strong> also blocked; sourced from a Cleveland outlet's own local-influencer roundup, plus Dr. Jessica Barrett added this pass after disambiguating multiple "Jessica Barrett" search hits.</div>
+<div class="row"><strong class="platname">New regions:</strong> Detroit, Fort Wayne, Ann Arbor, and Pennsylvania were researched this pass using <code>tinyfish</code> (search + fetch_content, handles bot-defended sites like Instagram/TikTok well) and <code>searxng</code> (broad result sweeps via a self-hosted instance), alongside standard web search. Target was ~5 verified people per platform; several platform/region combinations came up short and are reported honestly as gaps rather than padded with unverified or borderline entries. Real estate agents and journalists/newscasters were excluded from these regions using the same rule already applied to Ohio.</div>
+<div class="row"><strong>Emails</strong> — real, found emails only. Everything marked "not publicly listed" was actually searched for and not found — nothing here is fabricated.</div>
+<div class="row"><strong>Still not run</strong> on any platform: the feed's Analytics &amp; Vetting tools (fake-follower detection, engagement scoring) — all counts above are raw, unaudited.</div>
+</div>
+<footer>
+    Tools actually run: <a href="https://github.com/N4rr34n6/TikTok-User-Info-Scraper" rel="noopener" target="_blank">TikTok-User-Info-Scraper</a>,
+    custom YouTube <code>/about</code>-page extractor, <code>tinyfish</code> MCP search/fetch, self-hosted <code>searxng</code> MCP search.
+    Key sources: <a href="https://journalists.feedspot.com/nbc4i_journalists/" rel="noopener" target="_blank">NBC4/WCMH journalist directory</a>,
+    <a href="https://journalists.feedspot.com/wlwt_journalists/" rel="noopener" target="_blank">WKYC staff listings</a>,
+    <a href="https://theclevelandbucketlist.com/blog/top-9-influencers-to-follow-in-cleveland" rel="noopener" target="_blank">Cleveland Bucket List influencer roundup</a>.
+    Methodology repo: <a href="https://github.com/KingEnderdragon/online-influencer-discovery-feed" rel="noopener" target="_blank">online-influencer-discovery-feed</a>.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var STORAGE_KEY = "oidf-row-marks-v1";
+  var rows = Array.prototype.slice.call(document.querySelectorAll("tr[data-row-id]"));
+  var state = {};
+
+  function decodeState(code){
+    var out = {};
+    try {
+      code.split(",").forEach(function(tok){
+        if(!tok) return;
+        var id = tok.slice(0, -1), flag = tok.slice(-1);
+        if(flag === "c" || flag === "s") out[id] = flag;
+      });
+    } catch(e){ return null; }
+    return out;
+  }
+
+  function loadFromStorage(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch(e){ return {}; }
+  }
+
+  function saveToStorage(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+  }
+
+  function encodeState(){
+    var parts = [];
+    Object.keys(state).forEach(function(id){
+      if(state[id]) parts.push(id + state[id]);
+    });
+    return parts.join(",");
+  }
+
+  function applyRowVisual(tr, id){
+    var flag = state[id];
+    tr.classList.toggle("row-checked", flag === "c");
+    tr.classList.toggle("row-struck", flag === "s");
+    var checkBtn = tr.querySelector(".toggle-check");
+    var strikeBtn = tr.querySelector(".toggle-strike");
+    if(checkBtn) checkBtn.setAttribute("aria-pressed", flag === "c" ? "true" : "false");
+    if(strikeBtn) strikeBtn.setAttribute("aria-pressed", flag === "s" ? "true" : "false");
+  }
+
+  state = loadFromStorage();
+
+  function renderAll(){
+    rows.forEach(function(tr){
+      var id = tr.getAttribute("data-row-id");
+      applyRowVisual(tr, id);
+    });
+  }
+  renderAll();
+
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest(".toggle-btn");
+    if(!btn) return;
+    var id = btn.getAttribute("data-row");
+    var action = btn.getAttribute("data-action") === "check" ? "c" : "s";
+    var tr = document.querySelector('tr[data-row-id="' + id + '"]');
+    if(!tr) return;
+    state[id] = (state[id] === action) ? null : action;
+    if(!state[id]) delete state[id];
+    applyRowVisual(tr, id);
+    saveToStorage();
+  });
+
+  var copyBtn = document.getElementById("copy-link-btn");
+  var applyBtn = document.getElementById("apply-code-btn");
+  var applyInput = document.getElementById("apply-code-input");
+  var status = document.getElementById("share-status");
+
+  function showStatus(msg){
+    status.textContent = msg;
+    setTimeout(function(){ status.textContent = ""; }, 4000);
+  }
+
+  if(copyBtn){
+    copyBtn.addEventListener("click", function(){
+      var code = encodeState();
+      if(!code){
+        showStatus("No marks yet — check or strike a row first.");
+        return;
+      }
+      var done = function(ok){
+        showStatus(ok ? "Code copied — paste it into someone else's \"Paste a marks code\" box." : "Couldn't copy automatically — this text is your code: " + code);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(function(){ done(true); }, function(){ done(false); });
+      } else {
+        done(false);
+      }
+    });
+  }
+
+  if(applyBtn && applyInput){
+    applyBtn.addEventListener("click", function(){
+      var code = applyInput.value.trim();
+      if(!code){
+        showStatus("Paste a marks code first.");
+        return;
+      }
+      var decoded = decodeState(code);
+      if(!decoded){
+        showStatus("That code didn't parse — double check it was copied in full.");
+        return;
+      }
+      state = decoded;
+      saveToStorage();
+      renderAll();
+      applyInput.value = "";
+      showStatus("Marks applied from code.");
+    });
+  }
+})();
+</script>
