@@ -46,6 +46,183 @@ padding:1.1rem 1.2rem 1.3rem;margin-bottom:2.5rem}
 .spotlight h3{margin-top:0}
 .spotlight .table-scroll{background:var(--paper);margin-bottom:0}
 .category-tag{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.row-controls{white-space:nowrap;padding:.4rem .5rem !important}
+.toggle-btn{font-size:.85rem;line-height:1;width:1.7em;height:1.7em;border-radius:6px;
+border:1px solid var(--line);background:var(--paper);color:var(--muted);cursor:pointer;
+margin-right:.25rem;padding:0;vertical-align:middle;transition:background .12s,color .12s,border-color .12s}
+.toggle-btn:last-child{margin-right:0}
+.toggle-btn:hover{border-color:var(--accent)}
+.toggle-btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.toggle-check[aria-pressed="true"]{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.toggle-strike[aria-pressed="true"]{background:var(--warn-soft);color:var(--warn);border-color:var(--warn)}
+tr.row-checked{background:var(--ok-soft)}
+tr.row-struck td:not(.row-controls){text-decoration:line-through;opacity:.55}
+.share-bar{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-size:.8rem;color:var(--muted);
+background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:.6rem .9rem;margin-bottom:2rem}
+.share-bar button{font:inherit;font-size:.78rem;font-weight:600;color:var(--accent);background:var(--accent-soft);
+border:1px solid var(--line);border-radius:999px;padding:.4em .9em;cursor:pointer}
+.share-bar button:hover{opacity:.85}
+.share-bar button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.share-bar input[type="text"]{font:inherit;font-size:.78rem;border:1px solid var(--line);border-radius:999px;
+padding:.4em .9em;background:var(--bg);color:inherit;min-width:12rem}
+.share-bar input[type="text"]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.share-bar .share-status{font-size:.78rem}
+@media (prefers-reduced-motion: reduce){.toggle-btn{transition:none}}
+"""
+
+# Set on each render_table() call by render_region() via a mutable counter so
+# every row across the whole page gets a unique id (marks code round-trips
+# through row-N tokens, so ids must be stable within one generated page).
+_row_counter = [0]
+
+
+def _next_row_id() -> str:
+    _row_counter[0] += 1
+    return f"row-{_row_counter[0]}"
+
+
+def _row_controls_cell(row_id: str) -> str:
+    return (
+        f"<td class='row-controls'>"
+        f"<button type='button' class='toggle-btn toggle-check' data-action='check' data-row='{row_id}' "
+        f"aria-pressed='false' aria-label='Mark row as reviewed' title='Mark as reviewed (highlight)'>&#10003;</button>"
+        f"<button type='button' class='toggle-btn toggle-strike' data-action='strike' data-row='{row_id}' "
+        f"aria-pressed='false' aria-label='Mark row as removed' title='Mark as removed (strikethrough)'>&#10005;</button>"
+        f"</td>"
+    )
+
+
+SHARE_BAR = """
+<div class="share-bar">
+  <span>Mark rows with &#10003; (reviewed) or &#10005; (remove) &mdash; your marks are saved in this browser. To share them, copy the code below and send it to someone with this same page open.</span>
+  <button type="button" id="copy-link-btn">Copy marks code</button>
+  <input type="text" id="apply-code-input" placeholder="Paste a marks code&hellip;" aria-label="Marks code to apply">
+  <button type="button" id="apply-code-btn">Apply</button>
+  <span class="share-status" id="share-status" aria-live="polite"></span>
+</div>
+"""
+
+ROW_MARKS_SCRIPT = """
+<script>
+(function(){
+  "use strict";
+  var STORAGE_KEY = "oidf-row-marks-v1";
+  var rows = Array.prototype.slice.call(document.querySelectorAll("tr[data-row-id]"));
+  var state = {};
+
+  function decodeState(code){
+    var out = {};
+    try {
+      code.split(",").forEach(function(tok){
+        if(!tok) return;
+        var id = tok.slice(0, -1), flag = tok.slice(-1);
+        if(flag === "c" || flag === "s") out[id] = flag;
+      });
+    } catch(e){ return null; }
+    return out;
+  }
+
+  function loadFromStorage(){
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch(e){ return {}; }
+  }
+
+  function saveToStorage(){
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e){}
+  }
+
+  function encodeState(){
+    var parts = [];
+    Object.keys(state).forEach(function(id){
+      if(state[id]) parts.push(id + state[id]);
+    });
+    return parts.join(",");
+  }
+
+  function applyRowVisual(tr, id){
+    var flag = state[id];
+    tr.classList.toggle("row-checked", flag === "c");
+    tr.classList.toggle("row-struck", flag === "s");
+    var checkBtn = tr.querySelector(".toggle-check");
+    var strikeBtn = tr.querySelector(".toggle-strike");
+    if(checkBtn) checkBtn.setAttribute("aria-pressed", flag === "c" ? "true" : "false");
+    if(strikeBtn) strikeBtn.setAttribute("aria-pressed", flag === "s" ? "true" : "false");
+  }
+
+  state = loadFromStorage();
+
+  function renderAll(){
+    rows.forEach(function(tr){
+      var id = tr.getAttribute("data-row-id");
+      applyRowVisual(tr, id);
+    });
+  }
+  renderAll();
+
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest(".toggle-btn");
+    if(!btn) return;
+    var id = btn.getAttribute("data-row");
+    var action = btn.getAttribute("data-action") === "check" ? "c" : "s";
+    var tr = document.querySelector('tr[data-row-id="' + id + '"]');
+    if(!tr) return;
+    state[id] = (state[id] === action) ? null : action;
+    if(!state[id]) delete state[id];
+    applyRowVisual(tr, id);
+    saveToStorage();
+  });
+
+  var copyBtn = document.getElementById("copy-link-btn");
+  var applyBtn = document.getElementById("apply-code-btn");
+  var applyInput = document.getElementById("apply-code-input");
+  var status = document.getElementById("share-status");
+
+  function showStatus(msg){
+    status.textContent = msg;
+    setTimeout(function(){ status.textContent = ""; }, 4000);
+  }
+
+  if(copyBtn){
+    copyBtn.addEventListener("click", function(){
+      var code = encodeState();
+      if(!code){
+        showStatus("No marks yet \\u2014 check or strike a row first.");
+        return;
+      }
+      var done = function(ok){
+        showStatus(ok ? "Code copied \\u2014 paste it into someone else's \\"Paste a marks code\\" box." : "Couldn't copy automatically \\u2014 this text is your code: " + code);
+      };
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(code).then(function(){ done(true); }, function(){ done(false); });
+      } else {
+        done(false);
+      }
+    });
+  }
+
+  if(applyBtn && applyInput){
+    applyBtn.addEventListener("click", function(){
+      var code = applyInput.value.trim();
+      if(!code){
+        showStatus("Paste a marks code first.");
+        return;
+      }
+      var decoded = decodeState(code);
+      if(!decoded){
+        showStatus("That code didn't parse \\u2014 double check it was copied in full.");
+        return;
+      }
+      state = decoded;
+      saveToStorage();
+      renderAll();
+      applyInput.value = "";
+      showStatus("Marks applied from code.");
+    });
+  }
+})();
+</script>
 """
 
 
@@ -62,8 +239,10 @@ def render_table(entries: list[dict], show_category: bool = False) -> str:
     rows = []
     for e in entries:
         cat_cell = f"<td class='category-tag'>{html.escape(e.get('category') or '')}</td>" if show_category else ""
+        row_id = _next_row_id()
         rows.append(
-            f"<tr><td>{html.escape(display_name(e))}</td>"
+            f"<tr data-row-id='{row_id}'>{_row_controls_cell(row_id)}"
+            f"<td>{html.escape(display_name(e))}</td>"
             f"<td class='handle'>{html.escape(e['name']) if e.get('handle') else ''}</td>"
             f"<td><span class='status-badge {e['confidence']}'>{e['confidence']}</span></td>"
             f"{cat_cell}"
@@ -96,7 +275,7 @@ def render_region(slug: str, region: dict) -> str:
               <h3>Job &amp; Career Creators</h3>
               <div class="table-scroll">
                 <table>
-                  <thead><tr><th>Name</th><th>Source title</th><th>Confidence</th><th>Residency evidence</th><th>Source</th></tr></thead>
+                  <thead><tr><th></th><th>Name</th><th>Source title</th><th>Confidence</th><th>Residency evidence</th><th>Source</th></tr></thead>
                   <tbody>{render_table(occupational)}</tbody>
                 </table>
               </div>
@@ -107,7 +286,7 @@ def render_region(slug: str, region: dict) -> str:
     for e in confirmed:
         by_platform.setdefault(e["platform"], []).append(e)
 
-    header_cols = "<th>Name</th><th>Source title</th><th>Confidence</th>"
+    header_cols = "<th></th><th>Name</th><th>Source title</th><th>Confidence</th>"
     if has_categories:
         header_cols += "<th>Category</th>"
     header_cols += "<th>Residency evidence</th><th>Source</th>"
@@ -138,6 +317,7 @@ def render_region(slug: str, region: dict) -> str:
 
 
 def main():
+    _row_counter[0] = 0
     nav = " ".join(f'<a href="#region-{slug}">{r["name"]}</a>' for slug, r in REGIONS.items())
     body = "".join(render_region(slug, r) for slug, r in REGIONS.items())
 
@@ -149,9 +329,12 @@ def main():
   <p class="dek">Generated by discover.py + verify.py (SearXNG search, local Ollama residency
   judging) — no live Claude research per update. Entries flagged "needs manual review" are the
   ones worth a one-off tinyfish/searxng deep-dive in a Claude session.</p></header>
+  {SHARE_BAR}
   <div class="region-nav">{nav}</div>
   {body}
-</div></body></html>"""
+</div>
+{ROW_MARKS_SCRIPT}
+</body></html>"""
 
     os.makedirs("docs", exist_ok=True)
     with open("docs/index.html", "w", encoding="utf-8") as f:
