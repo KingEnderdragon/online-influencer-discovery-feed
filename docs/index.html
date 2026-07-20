@@ -63,8 +63,9 @@ padding:.4em .9em;background:var(--bg);color:inherit;min-width:12rem}
   ones worth a one-off tinyfish/searxng deep-dive in a Claude session.</p></header>
   
 <div class="share-bar">
-  <span>Mark rows with &#10003; (reviewed) or &#10005; (remove) &mdash; your marks are saved in this browser. To share them, copy the code below and send it to someone with this same page open.</span>
-  <button type="button" id="copy-link-btn">Copy marks code</button>
+  <span>Mark rows with &#10003; (reviewed) or &#10005; (remove) &mdash; your marks are saved in this browser. To share them, generate the code below, select it, and copy it (Ctrl/Cmd+C) to send to someone with this same page open.</span>
+  <button type="button" id="copy-link-btn">Generate marks code</button>
+  <input type="text" id="code-output" readonly aria-label="Your marks code — select and copy" style="display:none">
   <input type="text" id="apply-code-input" placeholder="Paste a marks code&hellip;" aria-label="Marks code to apply">
   <button type="button" id="apply-code-btn">Apply</button>
   <span class="share-status" id="share-status" aria-live="polite"></span>
@@ -307,29 +308,40 @@ padding:.4em .9em;background:var(--bg);color:inherit;min-width:12rem}
   });
 
   var copyBtn = document.getElementById("copy-link-btn");
+  var codeOutput = document.getElementById("code-output");
   var applyBtn = document.getElementById("apply-code-btn");
   var applyInput = document.getElementById("apply-code-input");
   var status = document.getElementById("share-status");
 
   function showStatus(msg){
     status.textContent = msg;
-    setTimeout(function(){ status.textContent = ""; }, 4000);
+    setTimeout(function(){ status.textContent = ""; }, 6000);
   }
 
-  if(copyBtn){
+  if(copyBtn && codeOutput){
     copyBtn.addEventListener("click", function(){
       var code = encodeState();
       if(!code){
+        codeOutput.style.display = "none";
         showStatus("No marks yet \u2014 check or strike a row first.");
         return;
       }
-      var done = function(ok){
-        showStatus(ok ? "Code copied \u2014 paste it into someone else's \"Paste a marks code\" box." : "Couldn't copy automatically \u2014 this text is your code: " + code);
-      };
+      // Artifacts run this page inside a sandboxed iframe that may not grant
+      // clipboard-write permission, so navigator.clipboard.writeText can
+      // silently reject \u2014 always show the code as selectable text too,
+      // rather than relying on the clipboard API alone.
+      codeOutput.style.display = "";
+      codeOutput.value = code;
+      codeOutput.focus();
+      codeOutput.select();
       if(navigator.clipboard && navigator.clipboard.writeText){
-        navigator.clipboard.writeText(code).then(function(){ done(true); }, function(){ done(false); });
+        navigator.clipboard.writeText(code).then(function(){
+          showStatus("Code copied to your clipboard \u2014 paste it into someone else's \"Paste a marks code\" box.");
+        }, function(){
+          showStatus("Couldn't copy automatically \u2014 the code is selected below, press Ctrl/Cmd+C to copy it.");
+        });
       } else {
-        done(false);
+        showStatus("The code is selected below \u2014 press Ctrl/Cmd+C to copy it.");
       }
     });
   }
